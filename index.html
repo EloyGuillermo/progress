@@ -115,6 +115,19 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;
 .toast.on{opacity:1}
 .toast.err{background:var(--bad);color:#fff}
 
+details.prev{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:0;margin-bottom:12px;overflow:hidden}
+details.prev>summary{list-style:none;cursor:pointer;padding:14px;font-size:14px;
+  text-transform:uppercase;letter-spacing:.6px;color:var(--accent);font-weight:700}
+details.prev>summary::-webkit-details-marker{display:none}
+details.prev>summary::after{content:"  ▾";color:var(--dim)}
+details.prev[open]>summary::after{content:"  ▴"}
+details.prev .body{padding:0 14px 14px}
+.pv{border-top:1px solid var(--line);padding:9px 0}
+.pv:first-child{border-top:0}
+.pv .nm{font-weight:650;font-size:14px;margin-bottom:3px}
+.pv .st{font-size:13px;color:var(--dim);line-height:1.6}
+
 .hide{display:none!important}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sec-note{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.5}
@@ -210,7 +223,7 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;
     <p class="sec-note">Borrar el historial no toca nada del Sheet. Lo ya sincronizado sigue allí.</p>
   </div>
 
-  <p class="sec-note" style="text-align:center">Entreno · versión <b id="appVer">4</b></p>
+  <p class="sec-note" style="text-align:center">Entreno · versión <b id="appVer">5</b></p>
 </section>
 
 <div class="timer" id="timer">
@@ -343,9 +356,44 @@ function initSelects(){
   $("#weekSel").onchange = e=>{ ui.semana=+e.target.value; save(LS.ui,ui); renderPlan(); syncChip(); };
 }
 
+/* Resumen de la última vez que se hizo este mismo día, sacado del historial local. */
+function sesionAnterior(diaId){
+  const f = today();
+  const prev = hist.filter(x => x.dia === diaId && x.fecha !== f);
+  if(!prev.length) return null;
+  const fecha = prev[prev.length - 1].fecha;
+  const rows = prev.filter(x => x.fecha === fecha);
+  const grupos = [];
+  rows.forEach(r => {
+    let g = grupos.find(x => x.ej === r.ejercicio);
+    if(!g){ g = {ej:r.ejercicio, sets:[]}; grupos.push(g); }
+    g.sets.push(r);
+  });
+  return {fecha:fecha, semana:rows[0].semana, grupos:grupos, total:rows.length};
+}
+
+function compacta(x){
+  const carga = x.kg ? x.kg + " kg × " : "";
+  const trabajo = x.reps ? x.reps : (x.seg ? x.seg + " s" : "—");
+  const rir = (x.rir !== "" && x.rir != null) ? ` <span style="opacity:.6">RIR ${x.rir}</span>` : "";
+  return carga + trabajo + rir;
+}
+
 function renderPlan(){
   const d = DIAS[ui.dia], sem = ui.semana;
   let h = "";
+
+  const ant = sesionAnterior(d.id);
+  if(ant){
+    h += `<details class="prev">
+      <summary>La última vez · ${fmtF(ant.fecha)} (semana ${ant.semana}) · ${ant.total} ${ant.total===1?"serie":"series"}</summary>
+      <div class="body">${ant.grupos.map(g=>`
+        <div class="pv">
+          <div class="nm">${g.ej}</div>
+          <div class="st">${g.sets.map(compacta).join(" &nbsp;·&nbsp; ")}</div>
+        </div>`).join("")}</div>
+    </details>`;
+  }
   if(d.ej.some(e=>e.b==="reto") && RETO[sem]){
     const R=RETO[sem];
     h += `<div class="card" style="border-color:#5b3b7a">

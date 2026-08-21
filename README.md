@@ -85,6 +85,8 @@ funciona sin cobertura.
 ## Cómo se usa
 
 - **Hoy** — eliges sesión y semana. Te muestra el plan y, en el día 4, el reto de esa semana.
+  Arriba, si ya has hecho ese mismo día antes, aparece **"La última vez"**: un desplegable con
+  todas las series de la sesión anterior de ese día, agrupadas por ejercicio.
 - **Registrar** — tocas el ejercicio, ajustas kg y reps con los botones grandes, eliges RIR y
   guardas. El cronómetro de descanso arranca solo con el tiempo de ese ejercicio.
 - **Sesión** — el resumen de después: rodilla, codo, energía, sueño, finisher y sensaciones.
