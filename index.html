@@ -15,17 +15,17 @@
   --txt:#e8eef8; --dim:#93a3bd; --accent:#4c9aff; --ok:#3ddc97; --warn:#ffb020; --bad:#ff5c5c;
   --pad: env(safe-area-inset-bottom,0px);
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+  /* pan-x pan-y = se puede desplazar, pero ni doble toque ni pellizco.
+     touch-action NO se hereda: hay que ponerlo en todos los elementos. */
+  touch-action:pan-x pan-y}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  overscroll-behavior-y:contain;
-  /* mata el zoom por doble toque; el pellizco sigue disponible */
-  touch-action:manipulation}
+  overscroll-behavior-y:contain}
 body{padding-bottom:calc(78px + var(--pad))}
 body.timer-on{padding-bottom:calc(156px + var(--pad))}
 h1,h2,h3{margin:0}
-button{font-family:inherit;font-size:16px;border:0;background:none;color:inherit;
-  touch-action:manipulation}
+button{font-family:inherit;font-size:16px;border:0;background:none;color:inherit}
 input,select,textarea{font-family:inherit;font-size:16px;background:var(--panel2);color:var(--txt);
   border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
 textarea{resize:vertical;min-height:70px}
@@ -209,6 +209,8 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;
     <button class="btn gh" id="cfgWipe">Borrar historial local</button>
     <p class="sec-note">Borrar el historial no toca nada del Sheet. Lo ya sincronizado sigue allí.</p>
   </div>
+
+  <p class="sec-note" style="text-align:center">Entreno · versión <b id="appVer">4</b></p>
 </section>
 
 <div class="timer" id="timer">
@@ -302,7 +304,8 @@ const load = (k,d)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(
 const save = (k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ toast("Sin espacio para guardar",1); } };
 
 let cfg   = load(LS.cfg, {url:"", token:"", bw:82});
-let queue = load(LS.queue, {sets:[], sesiones:[]});
+let queue = load(LS.queue, {sets:[], sesiones:[], edits:[], deletes:[]});
+["sets","sesiones","edits","deletes"].forEach(k=>{ if(!queue[k]) queue[k]=[]; });
 let hist  = load(LS.hist, []);          // últimas series guardadas (para "última vez")
 let ui    = load(LS.ui, {dia:0, semana:1});
 
@@ -364,7 +367,9 @@ function renderPlan(){
 }
 
 /* ================================ REGISTRAR ================================ */
-let sel = null;   // ejercicio seleccionado
+let sel = null;      // ejercicio seleccionado
+let hoyOpen = false; // lista de series de hoy
+let editId = null;   // serie que se está editando
 let form = {kg:0, reps:8, rir:2, seg:0};
 
 function seriesHoy(nombre){
@@ -381,10 +386,13 @@ function ultimaVez(nombre){
 }
 
 function renderReg(){
+  if(editId){ renderEdit(); return; }
+  if(hoyOpen){ renderHoy(); return; }
   if(sel){ renderPanel(); return; }
   $("#regPanel").classList.add("hide");
   $("#regList").classList.remove("hide");
   const d = DIAS[ui.dia];
+  const nHoy = hist.filter(x=>x.fecha===today()).length;
   $("#regList").innerHTML = `<div class="card"><h2>${d.nombre}</h2>` +
     d.ej.map((e,i)=>{
       const n = seriesHoy(e.n);
@@ -395,7 +403,9 @@ function renderReg(){
         <div class="mt">${e.s} × ${e.r}${e.rir!=="-"?" · RIR "+e.rir:""}</div>
       </button>`;
     }).join("") + `</div>
-    <button class="btn sec" id="regOtro">Otro ejercicio…</button>`;
+    <button class="btn sec" id="regOtro">Otro ejercicio…</button>
+    ${nHoy?`<button class="btn sec" id="regHoy">Ver y corregir las ${nHoy} series de hoy</button>`:""}`;
+  if(nHoy) $("#regHoy").onclick=()=>{ hoyOpen=true; renderReg(); };
   $$("#regList .ex").forEach(b=>b.onclick=()=>{ openEx(d.ej[+b.dataset.i]); });
   $("#regOtro").onclick=()=>{
     const n = prompt("Nombre del ejercicio (tal cual está en la hoja Listas):");
@@ -588,7 +598,9 @@ function beep(){
 }
 
 /* ================================ SYNC ================================ */
-function pending(){ return queue.sets.length + queue.sesiones.length; }
+function pending(){
+  return queue.sets.length + queue.sesiones.length + queue.edits.length + queue.deletes.length;
+}
 
 function syncChip(){
   const n=pending(), c=$("#hSync");
@@ -607,13 +619,16 @@ async function trySync(silent){
   try{
     const res = await fetch(cfg.url, {
       method:"POST", redirect:"follow",
-      body: JSON.stringify({token:cfg.token, sets:queue.sets, sesiones:queue.sesiones})
+      body: JSON.stringify({token:cfg.token, sets:queue.sets, sesiones:queue.sesiones,
+                            edits:queue.edits, deletes:queue.deletes})
     });
     const data = await res.json();
     if(!data.ok) throw new Error(data.error||"respuesta no válida");
     const ack = new Set(data.acked||[]);
     queue.sets = queue.sets.filter(x=>!ack.has(x.id));
     queue.sesiones = queue.sesiones.filter(x=>!ack.has(x.id));
+    queue.edits = queue.edits.filter(x=>!ack.has(x.opId));
+    queue.deletes = queue.deletes.filter(x=>!ack.has(x.opId));
     save(LS.queue,queue);
     if(!silent) toast("Sincronizado: "+ack.size+" registros");
   }catch(err){
@@ -659,6 +674,175 @@ $("#cfgWipe").onclick=()=>{
   hist=[]; queue={sets:[],sesiones:[]}; save(LS.hist,hist); save(LS.queue,queue);
   toast("Historial local borrado"); syncChip(); renderCfg();
 };
+
+
+/* ======================= SERIES DE HOY: VER Y CORREGIR ======================= */
+function seriesDeHoy(){
+  return hist.filter(x=>x.fecha===today());
+}
+
+function resumenSerie(x){
+  const partes = [];
+  if(x.kg) partes.push(x.kg+" kg");
+  if(x.reps) partes.push(x.reps+" reps");
+  if(x.seg) partes.push(x.seg+" s");
+  if(x.rir!=="" && x.rir!=null) partes.push("RIR "+x.rir);
+  return partes.join(" · ") || "sin datos";
+}
+
+function renderHoy(){
+  const rows = seriesDeHoy();
+  $("#regList").classList.add("hide");
+  $("#regPanel").classList.remove("hide");
+  $("#regPanel").innerHTML = `
+    <button class="btn sec" id="hBack" style="margin-bottom:12px">‹ Volver</button>
+    <div class="card">
+      <h2>Series de hoy · ${fmtF(today())}</h2>
+      ${rows.length? rows.map(x=>`
+        <button class="ex" data-id="${x.id}">
+          <span class="done">corregir ›</span>
+          <div class="nm">${x.ejercicio}</div>
+          <div class="mt">Serie ${x.serie} · ${resumenSerie(x)}</div>
+          ${x.notas?`<div class="mt" style="margin-top:5px;color:#7d8ca6">${x.notas}</div>`:""}
+        </button>`).join("")
+      : `<p class="muted">Todavía no has registrado nada hoy.</p>`}
+    </div>`;
+  $("#hBack").onclick=()=>{ hoyOpen=false; renderReg(); };
+  $$("#regPanel .ex").forEach(b=>b.onclick=()=>{ openEdit(b.dataset.id); });
+}
+
+function openEdit(id){
+  const x = hist.find(r=>r.id===id);
+  if(!x){ toast("Esa serie ya no está",1); return; }
+  editId = id;
+  form = {kg: x.kg||0, reps: x.reps||0, rir: (x.rir===""||x.rir==null)?2:x.rir, seg: x.seg||0};
+  renderEdit();
+}
+
+function renderEdit(){
+  const x = hist.find(r=>r.id===editId);
+  if(!x){ editId=null; renderReg(); return; }
+  const enCola = queue.sets.some(q=>q.id===editId);
+  $("#regList").classList.add("hide");
+  $("#regPanel").classList.remove("hide");
+  $("#regPanel").innerHTML = `
+    <button class="btn sec" id="eBack" style="margin-bottom:12px">‹ Cancelar</button>
+    <div class="card">
+      <h2 style="color:var(--txt);text-transform:none;font-size:19px;letter-spacing:0">${x.ejercicio}</h2>
+      <div class="muted">Serie ${x.serie} · ${fmtF(x.fecha)}</div>
+      <div class="muted" style="margin-top:6px">${enCola
+        ? "Aún no ha llegado al Sheet: se corrige aquí mismo."
+        : "Ya está en el Sheet: el cambio se enviará al sincronizar."}</div>
+
+      <label class="lbl">Kg extra</label>
+      <div class="stepper">
+        <button data-a="kg-">−</button>
+        <div class="val"><b id="fKg">0</b><span>kg</span></div>
+        <button data-a="kg+">+</button>
+      </div>
+      <div class="chips" style="margin-top:8px">
+        <button data-a="kgs" data-v="0.5">paso 0,5</button>
+        <button data-a="kgs" data-v="1">paso 1</button>
+        <button data-a="kgs" data-v="2.5" class="on">paso 2,5</button>
+        <button data-a="kgs" data-v="5">paso 5</button>
+      </div>
+
+      <label class="lbl">Repeticiones</label>
+      <div class="stepper">
+        <button data-a="rep-">−</button>
+        <div class="val"><b id="fRep">0</b><span>reps</span></div>
+        <button data-a="rep+">+</button>
+      </div>
+
+      <label class="lbl">Tiempo del hold (s)</label>
+      <div class="stepper">
+        <button data-a="seg-">−</button>
+        <div class="val"><b id="fSeg">0</b><span>segundos</span></div>
+        <button data-a="seg+">+</button>
+      </div>
+
+      <label class="lbl">RIR</label>
+      <div class="chips" id="fRir">
+        ${[0,1,2,3,4].map(v=>`<button data-a="rir" data-v="${v}">${v}</button>`).join("")}
+      </div>
+
+      <label class="lbl">Notas</label>
+      <input type="text" id="fNot" value="${(x.notas||"").replace(/"/g,"&quot;")}">
+
+      <button class="btn" id="eSave">Guardar cambios</button>
+      <button class="btn gh" id="eDel">Borrar esta serie</button>
+    </div>`;
+
+  $("#eBack").onclick=()=>{ editId=null; renderReg(); };
+  paintForm();
+  let step = 2.5;
+  $$("#regPanel [data-a]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.a;
+    if(a==="kgs"){ step=parseFloat(b.dataset.v);
+      $$('#regPanel [data-a="kgs"]').forEach(y=>y.classList.toggle("on",y===b)); return; }
+    if(a==="kg+") form.kg=Math.round((form.kg+step)*10)/10;
+    if(a==="kg-") form.kg=Math.max(0,Math.round((form.kg-step)*10)/10);
+    if(a==="rep+") form.reps++;
+    if(a==="rep-") form.reps=Math.max(0,form.reps-1);
+    if(a==="seg+") form.seg+=5;
+    if(a==="seg-") form.seg=Math.max(0,form.seg-5);
+    if(a==="rir") form.rir=+b.dataset.v;
+    paintForm();
+  });
+
+  $("#eSave").onclick=()=>{
+    aplicarEdicion(editId, {
+      kg: form.kg||"", reps: form.reps||"", seg: form.seg||"",
+      rir: form.reps ? form.rir : "", notas: $("#fNot").value.trim()
+    });
+    toast("Serie corregida");
+    if(navigator.vibrate) navigator.vibrate(30);
+    editId=null; renderReg(); syncChip(); trySync(true);
+  };
+
+  $("#eDel").onclick=()=>{
+    if(!confirm("¿Borrar esta serie? También se quitará del Sheet.")) return;
+    borrarSerie(editId);
+    toast("Serie borrada");
+    editId=null; renderReg(); syncChip(); trySync(true);
+  };
+}
+
+/* Cambia una serie: si aún no salió del móvil se toca en la cola; si ya está en
+   el Sheet se encola una orden de edición que se aplicará buscando su id. */
+function aplicarEdicion(id, campos){
+  const h = hist.find(x=>x.id===id);
+  if(h) Object.assign(h, campos);
+  save(LS.hist,hist);
+  const q = queue.sets.find(x=>x.id===id);
+  if(q) Object.assign(q, campos);
+  else queue.edits.push({opId:uid(), id:id, campos:campos});
+  save(LS.queue,queue);
+}
+
+function borrarSerie(id){
+  const x = hist.find(r=>r.id===id);
+  hist = hist.filter(r=>r.id!==id);
+  save(LS.hist,hist);
+  const i = queue.sets.findIndex(r=>r.id===id);
+  if(i>=0) queue.sets.splice(i,1);
+  else queue.deletes.push({opId:uid(), id:id});
+  save(LS.queue,queue);
+  if(x) renumerar(x.fecha, x.ejercicio);
+}
+
+/* Tras borrar, las series de ese ejercicio se renumeran para que no queden huecos. */
+function renumerar(fecha, ejercicio){
+  hist.filter(r=>r.fecha===fecha && r.ejercicio===ejercicio)
+      .forEach((r,i)=>{ if(r.serie!==i+1) aplicarEdicion(r.id,{serie:i+1}); });
+}
+
+/* ============================ SIN ZOOM (iOS) ============================ */
+/* Safari implementa el pellizco con estos eventos propios de WebKit.
+   Se frenan aquí porque el CSS por sí solo no los cubre. */
+["gesturestart","gesturechange","gestureend"].forEach(ev=>{
+  document.addEventListener(ev, e=>e.preventDefault(), {passive:false});
+});
 
 /* ================================ ARRANQUE ================================ */
 initSelects(); renderPlan(); initSesion(); syncChip(); trySync(true);

@@ -88,7 +88,10 @@ funciona sin cobertura.
 - **Registrar** — tocas el ejercicio, ajustas kg y reps con los botones grandes, eliges RIR y
   guardas. El cronómetro de descanso arranca solo con el tiempo de ese ejercicio.
 - **Sesión** — el resumen de después: rodilla, codo, energía, sueño, finisher y sensaciones.
-- **Ajustes** — estado de sincronización, forzar envío, exportar copia.
+- **Corregir** — dentro de *Registrar*, abajo, el botón **"Ver y corregir las N series de hoy"**.
+  Tocas una serie y puedes cambiar kilos, reps, segundos, RIR y notas, o borrarla. Funciona
+  tanto si la serie sigue en la cola como si ya está en el Sheet.
+- **Ajustes** — estado de sincronización, forzar envío, número de versión, exportar copia.
 
 Arriba a la derecha, el indicador: **✓ al día** o **N pend.** Se sincroniza sola al guardar,
 al recuperar conexión y al volver a abrir la app. También puedes forzarla tocando el indicador.
@@ -107,7 +110,13 @@ ya está en la hoja. Puedes reintentar sin miedo.
 1RM estimado y volumen, que se calculan solas.
 
 **Las columnas M** de `Registro` y `Sesiones` guardan esos identificadores. No las borres ni
-escribas en ellas; puedes ocultarlas si te molestan.
+escribas en ellas; puedes ocultarlas si te molestan. Son las que permiten corregir y borrar
+series desde el móvil: el script localiza la fila por su identificador.
+
+**Al borrar una serie**, el script vacía las columnas de datos de esa fila pero no la elimina,
+para no desplazar las fórmulas. El hueco lo reutiliza el siguiente registro, así que las filas
+del Sheet pueden quedar ligeramente desordenadas. No afecta a nada: `Progreso`, el volumen y
+los totales van por identificador y por fecha, no por posición.
 
 **Límites de filas:** 800 en `Registro` y 250 en `Sesiones`, que es hasta donde llegan las
 fórmulas. Cuando te acerques, arrastra las fórmulas hacia abajo y sube `FILAS_REGISTRO` y

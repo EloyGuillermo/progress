@@ -44,6 +44,13 @@ function doPost(e) {
       if (body.sesiones && body.sesiones.length) {
         insertar(ss.getSheetByName(HOJA_SESIONES), body.sesiones, filaSesion, FILAS_SESIONES, acked);
       }
+      // El orden importa: primero se inserta, luego se corrige, y por último se borra.
+      if (body.edits && body.edits.length) {
+        editar(ss.getSheetByName(HOJA_REGISTRO), body.edits, FILAS_REGISTRO, acked);
+      }
+      if (body.deletes && body.deletes.length) {
+        borrar(ss.getSheetByName(HOJA_REGISTRO), body.deletes, FILAS_REGISTRO, acked);
+      }
     } finally {
       lock.releaseLock();
     }
@@ -90,6 +97,57 @@ function insertar(hoja, items, mapper, maxFilas, acked) {
     vistos[it.id] = true;
     acked.push(it.id);
     libre++;
+  }
+}
+
+/** Columnas editables de la hoja Registro. */
+var COLS_EDIT = { serie: 5, kg: 6, reps: 7, seg: 8, rir: 9, notas: 12 };
+
+/** Localiza cada fila por su id de la columna M. */
+function mapaDeIds(hoja, maxFilas) {
+  var ids = hoja.getRange(2, COL_ID, maxFilas - 1, 1).getValues();
+  var mapa = {};
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i][0]) mapa[String(ids[i][0])] = i + 2;
+  }
+  return mapa;
+}
+
+/**
+ * Corrige series ya escritas. Si el id no aparece, se confirma igual:
+ * significa que esa fila ya no existe y no hay nada que hacer.
+ */
+function editar(hoja, items, maxFilas, acked) {
+  if (!hoja) throw new Error('No existe la hoja Registro');
+  var mapa = mapaDeIds(hoja, maxFilas);
+  for (var k = 0; k < items.length; k++) {
+    var it = items[k];
+    var fila = mapa[it.id];
+    if (fila && it.campos) {
+      for (var campo in it.campos) {
+        if (COLS_EDIT[campo]) hoja.getRange(fila, COLS_EDIT[campo]).setValue(num(it.campos[campo]));
+      }
+    }
+    acked.push(it.opId);
+  }
+}
+
+/**
+ * Borra series. Vacía solo las columnas de datos y el id: nunca las fórmulas
+ * de J y K, y nunca la fila entera (eso desplazaría todo lo de abajo).
+ * El hueco que queda lo reutilizará el siguiente registro.
+ */
+function borrar(hoja, items, maxFilas, acked) {
+  if (!hoja) throw new Error('No existe la hoja Registro');
+  var mapa = mapaDeIds(hoja, maxFilas);
+  for (var k = 0; k < items.length; k++) {
+    var fila = mapa[items[k].id];
+    if (fila) {
+      hoja.getRange(fila, 1, 1, 9).clearContent();   // A-I
+      hoja.getRange(fila, 12).clearContent();        // L, notas
+      hoja.getRange(fila, COL_ID).clearContent();    // M, id
+    }
+    acked.push(items[k].opId);
   }
 }
 
