@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Entreno</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{
+  --bg:#0b1220; --panel:#131c2e; --panel2:#1b2740; --line:#26344f;
+  --txt:#e8eef8; --dim:#93a3bd; --accent:#4c9aff; --ok:#3ddc97; --warn:#ffb020; --bad:#ff5c5c;
+  --pad: env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  overscroll-behavior-y:contain}
+body{padding-bottom:calc(78px + var(--pad))}
+body.timer-on{padding-bottom:calc(156px + var(--pad))}
+h1,h2,h3{margin:0}
+button{font-family:inherit;font-size:16px;border:0;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:16px;background:var(--panel2);color:var(--txt);
+  border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
+textarea{resize:vertical;min-height:70px}
+.wrap{padding:14px 14px 20px;max-width:640px;margin:0 auto}
+
+header{position:sticky;top:0;z-index:20;background:rgba(11,18,32,.94);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 14px;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;font-weight:700;letter-spacing:.2px}
+.chip{font-size:12px;padding:5px 9px;border-radius:999px;background:var(--panel2);
+  border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.chip.sync-ok{color:var(--ok);border-color:#1e5c44}
+.chip.sync-pend{color:var(--warn);border-color:#5c4416}
+.spacer{flex:1}
+
+nav{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;
+  background:rgba(15,23,42,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  padding-bottom:var(--pad)}
+nav button{flex:1;padding:11px 4px 12px;display:flex;flex-direction:column;align-items:center;
+  gap:3px;color:var(--dim);font-size:11px;font-weight:600}
+nav button.on{color:var(--accent)}
+nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:14px;margin-bottom:12px}
+.card h2{font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);
+  margin-bottom:10px;font-weight:700}
+.row{display:flex;gap:10px;align-items:center}
+.muted{color:var(--dim);font-size:13px;line-height:1.5}
+.tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;
+  padding:3px 7px;border-radius:6px;background:var(--panel2);color:var(--dim);
+  text-transform:uppercase;margin-right:6px}
+.tag.skill{background:#1c3a2e;color:#6ee7b7}
+.tag.fuerza{background:#1e3355;color:#8ab8ff}
+.tag.reto{background:#3b2350;color:#d0a2ff}
+.tag.cuad{background:#3d2f14;color:#f5c56b}
+
+.ex{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;
+  background:var(--panel2);display:block;width:100%;text-align:left}
+.ex .nm{font-weight:650;font-size:15px;margin:2px 0 4px}
+.ex .mt{font-size:12px;color:var(--dim)}
+.ex .done{float:right;font-size:12px;color:var(--ok);font-weight:700}
+
+.stepper{display:flex;align-items:stretch;gap:8px;margin:6px 0 2px}
+.stepper button{width:56px;font-size:26px;font-weight:400;background:var(--panel2);
+  border:1px solid var(--line);border-radius:12px;line-height:1;padding:0}
+.stepper button:active{background:var(--accent);color:#04101f}
+.stepper .val{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);
+  border-radius:12px;padding:12px 4px}
+.stepper .val b{font-size:30px;font-weight:700;display:block;line-height:1.1}
+.stepper .val span{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chips button{flex:1;min-width:52px;padding:12px 4px;border-radius:11px;background:var(--panel2);
+  border:1px solid var(--line);font-weight:650;font-size:15px;color:var(--dim)}
+.chips button.on{background:var(--accent);color:#04101f;border-color:var(--accent)}
+
+.btn{display:block;width:100%;padding:15px;border-radius:12px;background:var(--accent);
+  color:#04101f;font-weight:750;font-size:16px;text-align:center;margin-top:6px}
+.btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line);font-weight:600}
+.btn.gh{background:#2a1a1a;color:#ff8a8a;border:1px solid #5c2626;font-weight:600}
+.btn:active{opacity:.75}
+.btn[disabled]{opacity:.4}
+
+.lbl{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;
+  font-weight:650;margin:14px 0 6px;display:block}
+.lbl:first-child{margin-top:0}
+
+.hist{font-size:13px;color:var(--dim);border-top:1px dashed var(--line);
+  margin-top:12px;padding-top:10px;line-height:1.7}
+.hist b{color:var(--txt)}
+
+.timer{position:fixed;left:14px;right:14px;bottom:calc(88px + var(--pad));z-index:25;
+  background:var(--panel);border:1px solid var(--accent);border-radius:14px;padding:12px 14px;
+  display:none;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.timer.on{display:flex}
+.timer .t{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;min-width:92px}
+.timer.fin{border-color:var(--ok)}
+.timer.fin .t{color:var(--ok)}
+.timer button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:9px 12px;font-size:13px;font-weight:650}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + var(--pad));
+  background:var(--ok);color:#04101f;padding:11px 18px;border-radius:999px;font-weight:700;
+  font-size:14px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap}
+.toast.on{opacity:1}
+.toast.err{background:var(--bad);color:#fff}
+
+.hide{display:none!important}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sec-note{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.5}
+.warn{color:var(--warn)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="hTitle">Entreno</h1>
+  <div class="spacer"></div>
+  <div class="chip" id="hWeek">S1</div>
+  <button class="chip" id="hSync">·</button>
+</header>
+
+<!-- ===================== HOY ===================== -->
+<section id="v-hoy" class="wrap">
+  <div class="card">
+    <h2>Qué toca hoy</h2>
+    <label class="lbl">Sesión</label>
+    <select id="daySel"></select>
+    <label class="lbl">Semana del bloque</label>
+    <select id="weekSel"></select>
+  </div>
+  <div id="planBox"></div>
+</section>
+
+<!-- ===================== REGISTRAR ===================== -->
+<section id="v-reg" class="wrap hide">
+  <div id="regList"></div>
+  <div id="regPanel" class="hide"></div>
+</section>
+
+<!-- ===================== SESIÓN ===================== -->
+<section id="v-ses" class="wrap hide">
+  <div class="card">
+    <h2>Resumen de la sesión</h2>
+    <p class="muted">Al terminar. Treinta segundos y tienes el dato que ninguna app te da.</p>
+
+    <label class="lbl">Duración (min)</label>
+    <input type="number" id="sDur" inputmode="numeric" placeholder="70">
+
+    <label class="lbl">Molestia de rodilla (0-10)</label>
+    <div class="chips" id="sRod"></div>
+
+    <label class="lbl">Molestia de codo (0-10)</label>
+    <div class="chips" id="sCod"></div>
+
+    <div class="grid2">
+      <div><label class="lbl">Energía (1-5)</label><input type="number" id="sEne" inputmode="numeric" min="1" max="5"></div>
+      <div><label class="lbl">Sueño (1-5)</label><input type="number" id="sSue" inputmode="numeric" min="1" max="5"></div>
+    </div>
+
+    <label class="lbl">Pasos del día</label>
+    <input type="number" id="sPas" inputmode="numeric" placeholder="9000">
+
+    <label class="lbl">Finisher del día</label>
+    <input type="text" id="sFin" placeholder="Escalera 5-4-3-2-1">
+
+    <label class="lbl">Sensaciones y notas</label>
+    <textarea id="sNot" placeholder="Cómo ha ido, qué has notado, qué cambiarías..."></textarea>
+
+    <button class="btn" id="sSave">Guardar sesión</button>
+  </div>
+</section>
+
+<!-- ===================== AJUSTES ===================== -->
+<section id="v-cfg" class="wrap hide">
+  <div class="card">
+    <h2>Sincronización</h2>
+    <p class="muted" id="cfgState">—</p>
+    <button class="btn" id="cfgSync" style="margin-top:12px">Sincronizar ahora</button>
+    <button class="btn sec" id="cfgTest">Probar conexión</button>
+  </div>
+
+  <div class="card">
+    <h2>Conexión con el Sheet</h2>
+    <label class="lbl">URL del Apps Script (/exec)</label>
+    <input type="url" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <label class="lbl">Token</label>
+    <input type="text" id="cfgTok" placeholder="el mismo que pusiste en Codigo.gs">
+    <label class="lbl">Peso corporal (kg)</label>
+    <input type="number" id="cfgBw" inputmode="decimal" step="0.1">
+    <button class="btn" id="cfgSave">Guardar ajustes</button>
+    <p class="sec-note">Se guarda solo en este móvil. Nada sale de aquí salvo hacia tu propio Sheet.</p>
+  </div>
+
+  <div class="card">
+    <h2>Datos locales</h2>
+    <p class="muted" id="cfgStats">—</p>
+    <button class="btn sec" id="cfgExport" style="margin-top:12px">Exportar copia (JSON)</button>
+    <button class="btn gh" id="cfgWipe">Borrar historial local</button>
+    <p class="sec-note">Borrar el historial no toca nada del Sheet. Lo ya sincronizado sigue allí.</p>
+  </div>
+</section>
+
+<div class="timer" id="timer">
+  <div class="t" id="tVal">0:00</div>
+  <button id="tPlus">+30 s</button>
+  <button id="tStop">Parar</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<nav>
+  <button data-v="hoy" class="on"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Hoy</button>
+  <button data-v="reg"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar</button>
+  <button data-v="ses"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Sesión</button>
+  <button data-v="cfg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>Ajustes</button>
+</nav>
+
+<script>
+/* =======================================================================
+   PLAN DEL BLOQUE 1  —  espejo de la hoja "Bloque actual"
+   Para cambiar la rutina, edita solo este objeto.
+   ======================================================================= */
+const DIAS = [
+  {id:"1 - Tracción pesada", nombre:"Día 1 · Tracción pesada", ej:[
+    {b:"skill", n:"Pino libre (hold)", s:"6-8", r:"10-15 s", rir:"-", d:45, nota:"Kick-up y hold. Acumular tiempo, no llegar al fallo."},
+    {b:"skill", n:"Front lever tuck", s:"4", r:"10-15 s", rir:"-", d:60, nota:"Escápulas deprimidas, lumbar plana. Si arqueas, acorta."},
+    {b:"fuerza", n:"Dominada lastrada", s:"5", r:"3-5", rir:"2", d:180, nota:"Tu subidor del techo. Empieza en +12-15 kg."},
+    {b:"fuerza", n:"Muscle-up", s:"5", r:"2-3", rir:"3", d:150, nota:"En fresco y limpio. Calidad sobre cantidad."},
+    {b:"acc", n:"Remo con barra", s:"4", r:"8-10", rir:"2", d:120, nota:"Si has escalado hoy o ayer: 2 series en vez de 4."},
+    {b:"acc", n:"Face pull", s:"3", r:"15-20", rir:"1", d:60, nota:"Salud de hombro. Innegociable con este volumen."},
+    {b:"acc", n:"Extensores de antebrazo con goma", s:"3", r:"20-25", rir:"-", d:45, nota:"Lo que te evita la epicondilitis. No lo saltes."}
+  ]},
+  {id:"2 - Pierna y core", nombre:"Día 2 · Pierna y core", ej:[
+    {b:"skill", n:"Pino contra pared (hold)", s:"5", r:"30-45 s", rir:"-", d:60, nota:"Cara a la pared si puedes: corrige el arqueo."},
+    {b:"fuerza", n:"Peso muerto rumano", s:"4", r:"6-8", rir:"2", d:180, nota:"Cadera atrás, rodillas casi fijas."},
+    {b:"fuerza", n:"Hip thrust con barra", s:"4", r:"8-10", rir:"2", d:120, nota:"Pausa de 1 s arriba. Glúteo fuerte protege la rodilla."},
+    {b:"cuad", n:"Sentadilla española (isométrico)", s:"4", r:"30-45 s", rir:"-", d:90, nota:"Tronco vertical. Empieza a 60º, NO a 90º."},
+    {b:"cuad", n:"Sentadilla talones elevados a cajón", s:"3", r:"8-10", rir:"3", d:120, nota:"Si molesta, sube el cajón antes que bajar el peso."},
+    {b:"acc", n:"Curl femoral tumbado", s:"3", r:"12-15", rir:"1", d:90, nota:"2 s en la excéntrica."},
+    {b:"acc", n:"Elevación de gemelo de pie", s:"4", r:"12-15", rir:"1", d:60, nota:"Rango completo con pausa abajo."},
+    {b:"acc", n:"Hollow hold", s:"4", r:"20-30 s", rir:"-", d:45, nota:"Base del pino y del front lever."}
+  ]},
+  {id:"3 - Empuje pesado", nombre:"Día 3 · Empuje pesado", ej:[
+    {b:"skill", n:"Pino libre (hold)", s:"6-8", r:"10-15 s", rir:"-", d:45, nota:"Frecuencia por encima de intensidad."},
+    {b:"skill", n:"Back lever tuck", s:"4", r:"10-15 s", rir:"-", d:60, nota:"MUY progresivo. Nunca con el codo molesto."},
+    {b:"fuerza", n:"Fondos lastrados", s:"5", r:"4-6", rir:"2", d:180, nota:"Sin bajar más allá de la horizontal."},
+    {b:"fuerza", n:"Press militar con barra", s:"4", r:"6-8", rir:"2", d:180, nota:"De pie. Transfiere directo al pino."},
+    {b:"acc", n:"Pike push-up", s:"3", r:"8-12", rir:"2", d:90, nota:"Cadera alta. Paso previo al pino con flexiones."},
+    {b:"acc", n:"Elevaciones laterales", s:"3", r:"15-20", rir:"1", d:60, nota:"Ligeras y controladas."},
+    {b:"acc", n:"Extensión de tríceps en polea", s:"3", r:"12-15", rir:"1", d:60, nota:"El tríceps limita los fondos finales del reto."}
+  ]},
+  {id:"4 - Reto y acondicionamiento", nombre:"Día 4 · Reto y acondicionamiento", ej:[
+    {b:"skill", n:"Pino libre (hold)", s:"5", r:"10-15 s", rir:"-", d:45, nota:"Corto: hoy la sesión principal es exigente."},
+    {b:"reto", n:"Dominada estricta", s:"ver plan", r:"ver plan", rir:"-", d:300, nota:"Parte del reto. Mira el plan de la semana arriba."},
+    {b:"reto", n:"Muscle-up", s:"ver plan", r:"ver plan", rir:"-", d:300, nota:"Parte del reto. Máximo 10 en toda la sesión."},
+    {b:"reto", n:"Fondos en paralelas", s:"ver plan", r:"ver plan", rir:"-", d:300, nota:"Parte del reto."},
+    {b:"acc", n:"Dominada supina", s:"3", r:"8-10", rir:"3", d:90, nota:"Agarre distinto para repartir el estrés del codo."},
+    {b:"acc", n:"Flexiones", s:"3", r:"15-25", rir:"3", d:60, nota:"Volumen de empuje barato."},
+    {b:"acc", n:"Rueda abdominal", s:"3", r:"8-12", rir:"2", d:60, nota:"Sin dejar caer la lumbar."}
+  ]},
+  {id:"Escalada", nombre:"Escalada", ej:[
+    {b:"acc", n:"Escalada", s:"-", r:"-", rir:"-", d:0, nota:"Calienta dedos y codo 10 min. Al acabar, extensores con goma."}
+  ]},
+  {id:"Solo pino / skill", nombre:"Solo pino / skill", ej:[
+    {b:"skill", n:"Pino libre (hold)", s:"8-10", r:"10-20 s", rir:"-", d:45, nota:"Sesión corta de 10 min. Gana la frecuencia."},
+    {b:"skill", n:"Pino cara a la pared", s:"4", r:"30-60 s", rir:"-", d:60, nota:"No te deja hacer trampa con el arqueo."}
+  ]},
+  {id:"Cardio suave", nombre:"Cardio suave", ej:[
+    {b:"acc", n:"Remo (máquina)", s:"1", r:"20-30 min", rir:"-", d:0, nota:"Tu mejor opción de cardio con la rodilla."},
+    {b:"acc", n:"Bici estática", s:"1", r:"20-30 min", rir:"-", d:0, nota:"Sillín ALTO. Si está bajo, cargas la rótula."},
+    {b:"acc", n:"Elíptica", s:"1", r:"20-30 min", rir:"-", d:0, nota:"Intensidad conversable."}
+  ]}
+];
+
+const RETO = {
+  1:{t:"ESCALERA descendente 5-4-3-2-1", d:"5+1+5 → 4+1+4 → 3+1+3 → 2+1+2 → 1+1+1. Dos escaleras.", r:"90 s entre escalones · 5 min entre escaleras"},
+  2:{t:"ENSAYO 10 → MU → 10", d:"10 dominadas, 1 muscle-up y 10 fondos sin soltar. Tres rondas.", r:"5 min completos entre rondas"},
+  3:{t:"CLUSTERS 3 + 1 + 3", d:"3 dominadas, 1 muscle-up y 3 fondos. Cinco rondas.", r:"2-3 min entre rondas"},
+  4:{t:"ENSAYO 12 → MU → 12", d:"12 dominadas, 1 muscle-up y 12 fondos. Tres rondas.", r:"5 min completos entre rondas"},
+  5:{t:"ENSAYO 14 → MU → 14", d:"Dos rondas de 14 y una ronda final de 10.", r:"6 min completos entre rondas"},
+  6:{t:"DESCARGA + TEST", d:"Semana suave y TEST: 15 dominadas → muscle-up → 15 fondos.", r:"Descansa de sobra antes del intento"}
+};
+
+const TAGS = {skill:"Skill", fuerza:"Fuerza", cuad:"Cuádriceps", acc:"Accesorio", reto:"Reto"};
+
+/* ================================ ESTADO ================================ */
+const LS = {
+  cfg:"eg_cfg", queue:"eg_queue", hist:"eg_hist", ui:"eg_ui"
+};
+const load = (k,d)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } };
+const save = (k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ toast("Sin espacio para guardar",1); } };
+
+let cfg   = load(LS.cfg, {url:"", token:"", bw:82});
+let queue = load(LS.queue, {sets:[], sesiones:[]});
+let hist  = load(LS.hist, []);          // últimas series guardadas (para "última vez")
+let ui    = load(LS.ui, {dia:0, semana:1});
+
+const uid = ()=> (Date.now().toString(36) + Math.random().toString(36).slice(2,9));
+const today = ()=>{ const d=new Date(); const p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); };
+
+/* ================================ UI BASE ================================ */
+const $ = s=>document.querySelector(s);
+const $$ = s=>Array.from(document.querySelectorAll(s));
+
+function toast(msg, err){
+  const t=$("#toast"); t.textContent=msg; t.className="toast on"+(err?" err":"");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.className="toast",2200);
+}
+
+function view(v){
+  ["hoy","reg","ses","cfg"].forEach(x=>$("#v-"+x).classList.toggle("hide", x!==v));
+  $$("nav button").forEach(b=>b.classList.toggle("on", b.dataset.v===v));
+  const titles={hoy:"Qué toca hoy",reg:"Registrar serie",ses:"Fin de sesión",cfg:"Ajustes"};
+  $("#hTitle").textContent=titles[v];
+  if(v==="reg") renderReg();
+  if(v==="cfg") renderCfg();
+  window.scrollTo(0,0);
+}
+$$("nav button").forEach(b=>b.onclick=()=>view(b.dataset.v));
+
+/* ================================ HOY ================================ */
+function initSelects(){
+  $("#daySel").innerHTML = DIAS.map((d,i)=>`<option value="${i}">${d.nombre}</option>`).join("");
+  $("#weekSel").innerHTML = [1,2,3,4,5,6,7,8,9,10,11,12]
+    .map(w=>`<option value="${w}">Semana ${w}</option>`).join("");
+  $("#daySel").value = ui.dia; $("#weekSel").value = ui.semana;
+  $("#daySel").onchange = e=>{ ui.dia=+e.target.value; save(LS.ui,ui); renderPlan(); renderReg(); };
+  $("#weekSel").onchange = e=>{ ui.semana=+e.target.value; save(LS.ui,ui); renderPlan(); syncChip(); };
+}
+
+function renderPlan(){
+  const d = DIAS[ui.dia], sem = ui.semana;
+  let h = "";
+  if(d.ej.some(e=>e.b==="reto") && RETO[sem]){
+    const R=RETO[sem];
+    h += `<div class="card" style="border-color:#5b3b7a">
+      <h2 style="color:#d0a2ff">Reto · semana ${sem}</h2>
+      <div style="font-weight:700;font-size:16px;margin-bottom:6px">${R.t}</div>
+      <div class="muted">${R.d}</div>
+      <div class="muted" style="margin-top:6px"><b style="color:#e8eef8">Descanso:</b> ${R.r}</div>
+    </div>`;
+  }
+  h += `<div class="card"><h2>${d.nombre}</h2>` + d.ej.map(e=>`
+    <div class="ex">
+      <span class="tag ${e.b}">${TAGS[e.b]}</span>
+      <div class="nm">${e.n}</div>
+      <div class="mt">${e.s} × ${e.r}${e.rir!=="-"?" · RIR "+e.rir:""}${e.d?" · descanso "+fmtT(e.d):""}</div>
+      <div class="mt" style="margin-top:6px;color:#7d8ca6">${e.nota}</div>
+    </div>`).join("") + `</div>`;
+  $("#planBox").innerHTML = h;
+  $("#hWeek").textContent = "S"+sem;
+}
+
+/* ================================ REGISTRAR ================================ */
+let sel = null;   // ejercicio seleccionado
+let form = {kg:0, reps:8, rir:2, seg:0};
+
+function seriesHoy(nombre){
+  const f = today();
+  return hist.filter(x=>x.fecha===f && x.ejercicio===nombre).length;
+}
+function ultimaVez(nombre){
+  const f = today();
+  const prev = hist.filter(x=>x.ejercicio===nombre && x.fecha!==f);
+  if(!prev.length) return null;
+  const ult = prev[prev.length-1].fecha;
+  const rows = prev.filter(x=>x.fecha===ult);
+  return {fecha:ult, rows};
+}
+
+function renderReg(){
+  if(sel){ renderPanel(); return; }
+  $("#regPanel").classList.add("hide");
+  $("#regList").classList.remove("hide");
+  const d = DIAS[ui.dia];
+  $("#regList").innerHTML = `<div class="card"><h2>${d.nombre}</h2>` +
+    d.ej.map((e,i)=>{
+      const n = seriesHoy(e.n);
+      return `<button class="ex" data-i="${i}">
+        ${n?`<span class="done">${n} ${n===1?"serie":"series"} ✓</span>`:""}
+        <span class="tag ${e.b}">${TAGS[e.b]}</span>
+        <div class="nm">${e.n}</div>
+        <div class="mt">${e.s} × ${e.r}${e.rir!=="-"?" · RIR "+e.rir:""}</div>
+      </button>`;
+    }).join("") + `</div>
+    <button class="btn sec" id="regOtro">Otro ejercicio…</button>`;
+  $$("#regList .ex").forEach(b=>b.onclick=()=>{ openEx(d.ej[+b.dataset.i]); });
+  $("#regOtro").onclick=()=>{
+    const n = prompt("Nombre del ejercicio (tal cual está en la hoja Listas):");
+    if(n && n.trim()) openEx({b:"acc", n:n.trim(), s:"-", r:"-", rir:"-", d:90, nota:""});
+  };
+}
+
+function openEx(e){
+  sel = e;
+  const u = ultimaVez(e.n);
+  form = {kg: u? (u.rows[u.rows.length-1].kg||0) : 0,
+          reps: u? (u.rows[u.rows.length-1].reps||8) : 8,
+          rir: 2, seg: 0};
+  renderPanel();
+}
+
+function renderPanel(){
+  const e = sel, u = ultimaVez(e.n), n = seriesHoy(e.n);
+  const esTiempo = /s$|min/.test(e.r) && !/^\d+-\d+$/.test(e.r);
+  $("#regList").classList.add("hide");
+  $("#regPanel").classList.remove("hide");
+  $("#regPanel").innerHTML = `
+    <button class="btn sec" id="pBack" style="margin-bottom:12px">‹ Volver a la lista</button>
+    <div class="card">
+      <span class="tag ${e.b}">${TAGS[e.b]}</span>
+      <h2 style="color:var(--txt);text-transform:none;font-size:19px;letter-spacing:0;margin:8px 0 4px">${e.n}</h2>
+      <div class="muted">Objetivo: ${e.s} × ${e.r}${e.rir!=="-"?" · RIR "+e.rir:""}</div>
+      ${e.nota?`<div class="muted" style="margin-top:6px;color:#7d8ca6">${e.nota}</div>`:""}
+      <div class="muted" style="margin-top:8px"><b style="color:var(--ok)">Serie ${n+1}</b> de hoy</div>
+
+      <label class="lbl">Kg extra (lastre o barra)</label>
+      <div class="stepper">
+        <button data-a="kg-">−</button>
+        <div class="val"><b id="fKg">0</b><span>kg</span></div>
+        <button data-a="kg+">+</button>
+      </div>
+      <div class="chips" style="margin-top:8px">
+        <button data-a="kgs" data-v="0.5">paso 0,5</button>
+        <button data-a="kgs" data-v="1">paso 1</button>
+        <button data-a="kgs" data-v="2.5" class="on">paso 2,5</button>
+        <button data-a="kgs" data-v="5">paso 5</button>
+      </div>
+
+      <label class="lbl">${esTiempo?"Repeticiones (deja 0 si es por tiempo)":"Repeticiones"}</label>
+      <div class="stepper">
+        <button data-a="rep-">−</button>
+        <div class="val"><b id="fRep">8</b><span>reps</span></div>
+        <button data-a="rep+">+</button>
+      </div>
+
+      ${esTiempo?`
+      <label class="lbl">Tiempo del hold (s)</label>
+      <div class="stepper">
+        <button data-a="seg-">−</button>
+        <div class="val"><b id="fSeg">0</b><span>segundos</span></div>
+        <button data-a="seg+">+</button>
+      </div>`:""}
+
+      <label class="lbl">RIR (reps que te dejas)</label>
+      <div class="chips" id="fRir">
+        ${[0,1,2,3,4].map(v=>`<button data-a="rir" data-v="${v}">${v}</button>`).join("")}
+      </div>
+
+      <label class="lbl">Notas de la serie (opcional)</label>
+      <input type="text" id="fNot" placeholder="Sensación, técnica, molestia...">
+
+      <button class="btn" id="pSave">Guardar serie${e.d?" y descansar "+fmtT(e.d):""}</button>
+      <button class="btn sec" id="pSaveNo">Guardar sin cronómetro</button>
+
+      ${u?`<div class="hist"><b>Última vez (${fmtF(u.fecha)}):</b><br>${
+        u.rows.map((x,i)=>`Serie ${i+1}: ${x.kg?x.kg+" kg × ":""}${x.reps||x.seg+" s"}${x.rir!==""&&x.rir!=null?" · RIR "+x.rir:""}`).join("<br>")
+      }</div>`:`<div class="hist">Primera vez que registras este ejercicio en el móvil.</div>`}
+    </div>`;
+
+  $("#pBack").onclick=()=>{ sel=null; renderReg(); };
+  paintForm();
+  let step = 2.5;
+  $$("#regPanel [data-a]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.a;
+    if(a==="kgs"){ step=parseFloat(b.dataset.v);
+      $$('#regPanel [data-a="kgs"]').forEach(x=>x.classList.toggle("on",x===b)); return; }
+    if(a==="kg+") form.kg=Math.round((form.kg+step)*10)/10;
+    if(a==="kg-") form.kg=Math.max(0,Math.round((form.kg-step)*10)/10);
+    if(a==="rep+") form.reps++;
+    if(a==="rep-") form.reps=Math.max(0,form.reps-1);
+    if(a==="seg+") form.seg+=5;
+    if(a==="seg-") form.seg=Math.max(0,form.seg-5);
+    if(a==="rir") form.rir=+b.dataset.v;
+    paintForm();
+  });
+  $("#pSave").onclick=()=>saveSet(true);
+  $("#pSaveNo").onclick=()=>saveSet(false);
+}
+
+function paintForm(){
+  const k=$("#fKg"), r=$("#fRep"), s=$("#fSeg");
+  if(k) k.textContent=String(form.kg).replace(".",",");
+  if(r) r.textContent=form.reps;
+  if(s) s.textContent=form.seg;
+  $$('#fRir button').forEach(b=>b.classList.toggle("on", +b.dataset.v===form.rir));
+}
+
+function saveSet(conTimer){
+  const e=sel;
+  const row = {
+    id: uid(), fecha: today(), semana: ui.semana, dia: DIAS[ui.dia].id,
+    ejercicio: e.n, serie: seriesHoy(e.n)+1,
+    kg: form.kg||"", reps: form.reps||"", seg: form.seg||"",
+    rir: form.reps ? form.rir : "",
+    notas: ($("#fNot")&&$("#fNot").value.trim())||""
+  };
+  queue.sets.push(row); save(LS.queue,queue);
+  hist.push(row); if(hist.length>1200) hist=hist.slice(-1000); save(LS.hist,hist);
+  toast("Serie "+row.serie+" guardada");
+  if(navigator.vibrate) navigator.vibrate(30);
+  if(conTimer && e.d) startTimer(e.d);
+  renderPanel();
+  syncChip(); trySync(true);
+}
+
+/* ================================ SESIÓN ================================ */
+function initSesion(){
+  const mk=(el,max)=>{ $(el).innerHTML = Array.from({length:max+1},(_,i)=>
+    `<button data-v="${i}">${i}</button>`).join(""); };
+  mk("#sRod",10); mk("#sCod",10);
+  [["#sRod","rodilla"],["#sCod","codo"]].forEach(([sl,k])=>{
+    $$(sl+" button").forEach(b=>b.onclick=()=>{
+      $$(sl+" button").forEach(x=>x.classList.toggle("on",x===b));
+      $(sl).dataset.val=b.dataset.v;
+    });
+  });
+  $("#sSave").onclick=()=>{
+    const g=id=>{ const v=$(id).value.trim(); return v===""?"":Number(v); };
+    const row={ id:uid(), fecha:today(), semana:ui.semana, dia:DIAS[ui.dia].id,
+      duracion:g("#sDur"), rodilla:$("#sRod").dataset.val??"", codo:$("#sCod").dataset.val??"",
+      energia:g("#sEne"), sueno:g("#sSue"), pasos:g("#sPas"),
+      finisher:$("#sFin").value.trim(), notas:$("#sNot").value.trim() };
+    queue.sesiones.push(row); save(LS.queue,queue);
+    ["#sDur","#sEne","#sSue","#sPas","#sFin","#sNot"].forEach(i=>$(i).value="");
+    $$("#sRod button,#sCod button").forEach(b=>b.classList.remove("on"));
+    delete $("#sRod").dataset.val; delete $("#sCod").dataset.val;
+    toast("Sesión guardada");
+    if(navigator.vibrate) navigator.vibrate([30,60,30]);
+    syncChip(); trySync(true); view("hoy");
+  };
+}
+
+/* ================================ CRONÓMETRO ================================ */
+let tLeft=0, tInt=null;
+const fmtT = s=> s>=60 ? Math.floor(s/60)+":"+String(s%60).padStart(2,"0") : s+" s";
+const fmtF = f=>{ const [y,m,d]=f.split("-"); return d+"/"+m; };
+
+function showTimer(cls){
+  $("#timer").className=cls;
+  document.body.classList.toggle("timer-on", cls.indexOf("on")>=0);
+}
+function startTimer(sec){
+  tLeft=sec; showTimer("timer on"); paintTimer();
+  clearInterval(tInt);
+  tInt=setInterval(()=>{
+    tLeft--; paintTimer();
+    if(tLeft<=0){
+      clearInterval(tInt); showTimer("timer on fin");
+      beep(); if(navigator.vibrate) navigator.vibrate([200,100,200]);
+      setTimeout(()=>{ showTimer("timer"); }, 8000);
+    }
+  },1000);
+}
+function paintTimer(){
+  const s=Math.max(0,tLeft);
+  $("#tVal").textContent = Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+}
+$("#tPlus").onclick=()=>{ tLeft+=30; showTimer("timer on"); paintTimer(); };
+$("#tStop").onclick=()=>{ clearInterval(tInt); showTimer("timer"); };
+
+function beep(){
+  try{
+    const C=window.AudioContext||window.webkitAudioContext; if(!C) return;
+    const c=new C();
+    [0,0.22,0.44].forEach(t=>{
+      const o=c.createOscillator(), g=c.createGain();
+      o.type="sine"; o.frequency.value=880;
+      g.gain.setValueAtTime(0.001,c.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.35,c.currentTime+t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+t+0.18);
+      o.connect(g); g.connect(c.destination);
+      o.start(c.currentTime+t); o.stop(c.currentTime+t+0.2);
+    });
+  }catch(e){}
+}
+
+/* ================================ SYNC ================================ */
+function pending(){ return queue.sets.length + queue.sesiones.length; }
+
+function syncChip(){
+  const n=pending(), c=$("#hSync");
+  if(n===0){ c.className="chip sync-ok"; c.textContent="✓ al día"; }
+  else { c.className="chip sync-pend"; c.textContent=n+" pend."; }
+}
+$("#hSync").onclick=()=>{ if(pending()) trySync(false); else view("cfg"); };
+
+let syncing=false;
+async function trySync(silent){
+  if(syncing) return;
+  if(!pending()){ if(!silent) toast("No hay nada pendiente"); return; }
+  if(!cfg.url){ if(!silent) toast("Configura la URL en Ajustes",1); return; }
+  if(!navigator.onLine){ if(!silent) toast("Sin conexión. Se enviará luego"); return; }
+  syncing=true; $("#hSync").textContent="…";
+  try{
+    const res = await fetch(cfg.url, {
+      method:"POST", redirect:"follow",
+      body: JSON.stringify({token:cfg.token, sets:queue.sets, sesiones:queue.sesiones})
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error||"respuesta no válida");
+    const ack = new Set(data.acked||[]);
+    queue.sets = queue.sets.filter(x=>!ack.has(x.id));
+    queue.sesiones = queue.sesiones.filter(x=>!ack.has(x.id));
+    save(LS.queue,queue);
+    if(!silent) toast("Sincronizado: "+ack.size+" registros");
+  }catch(err){
+    if(!silent) toast("No se pudo sincronizar: "+err.message,1);
+  }finally{
+    syncing=false; syncChip(); if($("#v-cfg").classList.contains("hide")===false) renderCfg();
+  }
+}
+window.addEventListener("online", ()=>trySync(true));
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) trySync(true); });
+
+/* ================================ AJUSTES ================================ */
+function renderCfg(){
+  $("#cfgUrl").value=cfg.url; $("#cfgTok").value=cfg.token; $("#cfgBw").value=cfg.bw;
+  const n=pending();
+  $("#cfgState").innerHTML = n===0
+    ? `Todo sincronizado. ${navigator.onLine?"Con conexión.":"<span class='warn'>Sin conexión ahora mismo.</span>"}`
+    : `<span class="warn">${n} registro${n===1?"":"s"} esperando</span> (${queue.sets.length} series, ${queue.sesiones.length} sesiones). ${navigator.onLine?"Con conexión.":"Se enviarán al recuperar cobertura."}`;
+  $("#cfgStats").textContent = `${hist.length} series en el historial de este móvil. Ocupan poco, pero puedes limpiarlo cuando quieras.`;
+}
+$("#cfgSave").onclick=()=>{
+  cfg={url:$("#cfgUrl").value.trim(), token:$("#cfgTok").value.trim(), bw:Number($("#cfgBw").value)||82};
+  save(LS.cfg,cfg); toast("Ajustes guardados"); trySync(true);
+};
+$("#cfgSync").onclick=()=>trySync(false);
+$("#cfgTest").onclick=async()=>{
+  if(!cfg.url) return toast("Falta la URL",1);
+  try{
+    const r=await fetch(cfg.url+(cfg.url.includes("?")?"&":"?")+"ping=1", {redirect:"follow"});
+    const d=await r.json();
+    toast(d.ok? "Conexión correcta ✓" : "Responde pero con error",!d.ok);
+  }catch(e){ toast("No responde: "+e.message,1); }
+};
+$("#cfgExport").onclick=()=>{
+  const blob=new Blob([JSON.stringify({cfg:{url:cfg.url,bw:cfg.bw},queue,hist},null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="entreno-copia-"+today()+".json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+$("#cfgWipe").onclick=()=>{
+  if(pending() && !confirm("Tienes registros SIN sincronizar. Si borras, se pierden. ¿Seguro?")) return;
+  if(!confirm("Se borrará el historial local. El Sheet no se toca. ¿Continuar?")) return;
+  hist=[]; queue={sets:[],sesiones:[]}; save(LS.hist,hist); save(LS.queue,queue);
+  toast("Historial local borrado"); syncChip(); renderCfg();
+};
+
+/* ================================ ARRANQUE ================================ */
+initSelects(); renderPlan(); initSesion(); syncChip(); trySync(true);
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
