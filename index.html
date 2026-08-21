@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
 <title>Entreno</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -18,11 +18,14 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  overscroll-behavior-y:contain}
+  overscroll-behavior-y:contain;
+  /* mata el zoom por doble toque; el pellizco sigue disponible */
+  touch-action:manipulation}
 body{padding-bottom:calc(78px + var(--pad))}
 body.timer-on{padding-bottom:calc(156px + var(--pad))}
 h1,h2,h3{margin:0}
-button{font-family:inherit;font-size:16px;border:0;background:none;color:inherit}
+button{font-family:inherit;font-size:16px;border:0;background:none;color:inherit;
+  touch-action:manipulation}
 input,select,textarea{font-family:inherit;font-size:16px;background:var(--panel2);color:var(--txt);
   border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
 textarea{resize:vertical;min-height:70px}

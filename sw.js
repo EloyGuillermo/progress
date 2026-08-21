@@ -1,6 +1,6 @@
 /* Service worker: la app funciona sin cobertura.
    Sube la versión de CACHE cada vez que cambies index.html para forzar la actualización. */
-const CACHE = "entreno-v1";
+const CACHE = "entreno-v2";
 const SHELL = [
   "./",
   "./index.html",
